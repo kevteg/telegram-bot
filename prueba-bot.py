@@ -33,7 +33,7 @@ def main():
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
     # Telegram Bot Authorization Token
-    bot = telegram.Bot('TOKEN')
+    bot = telegram.Bot('53133786:AAE-aoWp6wwlfS0DOm52QYs6s0PR8jwV8QA')
 
     # This will be our global variable to keep the latest update_id when requesting
     # for updates. It starts with the latest update_id if available.
@@ -56,9 +56,10 @@ def echo(bot):
         chat_id = update.message.chat_id
         message = update.message.text.encode('utf-8')
         nombre  = update.message.from_user.username
+	persona = update.message.from_user.first_name
 
-        print message
         if (message):
+            print nombre + ": " + message
             if message == "/start":
                 bot.sendMessage(chat_id=chat_id,
                                 text="Hola @"+nombre+", @keeeevin es mi padre")
@@ -67,10 +68,11 @@ def echo(bot):
             # Reply the message
             if message == "/foto" or message == "/foto@lprotobot":
 		foto.toma()
-
+		bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.UPLOAD_PHOTO)
 		bot.sendPhoto(chat_id=chat_id, photo=open('Foto.png', 'r'))
             else:
                 #
+		bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.TYPING)
                 bot.sendMessage(chat_id=chat_id,
                                 text=ed(message))
 
