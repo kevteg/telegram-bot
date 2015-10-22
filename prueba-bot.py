@@ -21,6 +21,7 @@ import logging
 import telegram
 import urllib
 import random
+import foto
 
 LAST_UPDATE_ID = None
 
@@ -64,8 +65,12 @@ def echo(bot):
                 bot.sendMessage(chat_id=chat_id,
                                 text="Estoy aqui para hablar")
             # Reply the message
+            if message == "/foto" or message == "/foto@lprotobot":
+		foto.toma()
+
+		bot.sendPhoto(chat_id=chat_id, photo=open('Foto.png', 'r'))
             else:
-                #bot.sendPhoto(chat_id=chat_id, photo='https://telegram.org/img/t_logo.png')
+                #
                 bot.sendMessage(chat_id=chat_id,
                                 text=ed(message))
 
