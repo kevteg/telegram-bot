@@ -32,7 +32,7 @@ def main():
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
     # Telegram Bot Authorization Token
-    bot = telegram.Bot('53133786:AAE-aoWp6wwlfS0DOm52QYs6s0PR8jwV8QA')
+    bot = telegram.Bot('TOKEN')
 
     # This will be our global variable to keep the latest update_id when requesting
     # for updates. It starts with the latest update_id if available.
