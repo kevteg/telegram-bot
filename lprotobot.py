@@ -131,9 +131,13 @@ def habla(bot, update):
     if(len(texto) > 1):
         print texto
         os.system("rm audio.mp3")
-        os.system("espeak -v es-la \"" + texto + "\" --stdout | ffmpeg -i - -ar 44100 -ac 2 -ab 192k -f mp3 audio.mp3")
-        bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.UPLOAD_AUDIO)
-        bot.sendAudio(chat_id=chat_id, audio=open('audio.mp3', 'r'))
+        if("\"" not in texto and not(os.system("espeak -v es-la \"" + texto + "\" --stdout | ffmpeg -i - -ar 44100 -ac 2 -ab 192k -f mp3 audio.mp3"))):
+            bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.UPLOAD_AUDIO)
+            bot.sendAudio(chat_id=chat_id, audio=open('audio.mp3', 'r'))
+        else:
+            bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.TYPING)
+            bot.sendMessage(chat_id=chat_id,
+                            text="No puedo decir eso ")
     else:
         bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.TYPING)
         bot.sendMessage(chat_id=chat_id,
