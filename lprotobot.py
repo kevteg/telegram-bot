@@ -47,23 +47,19 @@ def echo(bot):
     for update in bot.getUpdates(offset=LAST_UPDATE_ID, timeout=10):
         #Se buscan entre todas las actualizaciones y se procesa cada mensaje
         message = update.message.text.encode('utf-8')
-        alias  = update.message.from_user.username
-        nombre_usuario = update.message.from_user.first_name
-
         if (message):
-            ej_comando = False
+            ej_comando     = False
+            alias          = update.message.from_user.username
+            nombre_usuario = update.message.from_user.first_name
             print nombre_usuario + " (" + alias + "): " + message.decode('utf-8')
 
             for comando in comandos.keys():
-                if comando in message:
+                if comando in message and not ej_comando:
                     ejecutarComando(comandos[comando], bot, update)
                     ej_comando = True
 
             if(not(ej_comando)):
-                chat_id = update.message.chat_id
-                bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.TYPING)
-                bot.sendMessage(chat_id=chat_id,
-                                text=ed(message))
+                enviarMensaje(bot, update, ed(message))
 
             # Se actualiza el último update
             LAST_UPDATE_ID = update.update_id + 1
@@ -75,10 +71,8 @@ param: bot:        bot que esta en funcionamiento
 def inicio(bot, update):
     chat_id = update.message.chat_id
     nombre = update.message.from_user.username
-    bot.sendMessage(chat_id=chat_id,
-                    text="Hola @" + nombre + ", @keeeevin es mi padre")
-    bot.sendMessage(chat_id=chat_id,
-                    text="Soy un bot de control de acceso del laboratorio de prototipos, pero también podemos charlar")
+    enviarMensaje(bot, update, "Hola @" + nombre + ", @keeeevin es mi padre")
+    enviarMensaje(bot, update, "Soy un bot de control de acceso del laboratorio de prototipos, pero también podemos charlar")
 '''
 brief: Método que envia foto de la cámara n-ésima
 param: bot:        bot que esta en funcionamiento
@@ -89,59 +83,55 @@ def tomarFoto(bot, update):
     message = update.message.text.encode('utf-8')
     camara  = message[len(message) - 1: len(message)]
     chat_id = update.message.chat_id
+    nombre_usuario = update.message.from_user.first_name
     if camara.isdigit():
         camara = int(camara)
         if camara >= 0 and camara <= num_camaras - 1:
+            enviarMensaje(bot, update, "Tomaré la foto " + nombre_usuario.encode('utf-8') +". Espera un momento")
             foto.toma(camara)
             #Se hace creer que el bot esta tomando una foto
             bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.UPLOAD_PHOTO)
-            bot.sendPhoto(chat_id=chat_id, photo=open('Foto.png', 'r'))
+            if(not(os.system("[ -f Foto.png ]"))):
+                bot.sendPhoto(chat_id=chat_id, photo=open('Foto.png', 'r'))
         else:
-            bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.TYPING)
-            bot.sendMessage(chat_id=chat_id,
-                            text="Lo siento señor usuario, no reconozco ese número de cámara")
+            enviarMensaje(bot, update, "Lo siento " + nombre_usuario.encode('utf-8') +", no reconozco ese número de cámara")
     else:
-        bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.TYPING)
-        bot.sendMessage(chat_id=chat_id,
-                        text="Lo siento señor usuario, no ha enviado número de cámara")
+        enviarMensaje(bot, update, "Lo siento " + nombre_usuario.encode('utf-8') + ", no ha enviado número de cámara")
 '''
 brief: Método que envia información sobre comandos y el bot
 param: bot:        bot que esta en funcionamiento
        update:     actualización que llamo el comando
 '''
 def ayuda(bot, update):
-    chat_id = update.message.chat_id
-    nombre = update.message.from_user.username
-    bot.sendMessage(chat_id=chat_id,
-                    text="Hola @" + nombre + ", soy un bot de control de acceso del laboratorio de prototipos")
-    bot.sendMessage(chat_id=chat_id,
-                    text="Por ahora tengo estos comandos: \n\
-                    /foto n: Envio una foto de la cámara n-ésima de la computadora donde me encuentre\n\
-                    /habla frase: envio un mensaje de voz con la frase que envies\n\
-                    /ayuda: explico mis comandos y razón de ser")
+    nombre_usuario = update.message.from_user.first_name
+    enviarMensaje(bot, update, "Hola " + nombre_usuario.encode('utf-8') + ", soy un bot de control de acceso del laboratorio de prototipos")
+    enviarMensaje(bot, update, "Por ahora tengo estos comandos: \n\
+                                /foto n: Envio una foto de la cámara n-ésima de la computadora donde me encuentre\n\
+                                /habla frase: envio un mensaje de voz con la frase que envies\n\
+                                /ayuda: explico mis comandos y razón de ser")
+
+
 '''
 brief: Método que envia el texto que recibe despues de /habla
 param: bot:        bot que esta en funcionamiento
        update:     actualización que llamo el comando
 '''
 def habla(bot, update):
-    message = update.message.text.encode('utf-8')
-    chat_id = update.message.chat_id
-    texto = message[6: len(message)]
+    message        = update.message.text.encode('utf-8')
+    chat_id        = update.message.chat_id
+    nombre_usuario = update.message.from_user.first_name
+    texto          = message[6: len(message)]
+
     if(len(texto) > 1):
         print texto
         os.system("rm audio.mp3")
         if("\"" not in texto and not(os.system("espeak -v es-la \"" + texto + "\" --stdout | ffmpeg -i - -ar 44100 -ac 2 -ab 192k -f mp3 audio.mp3"))):
             bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.UPLOAD_AUDIO)
-            bot.sendAudio(chat_id=chat_id, audio=open('audio.mp3', 'r'))
+            bot.sendVoice(chat_id=chat_id, voice=open('audio.mp3', 'r'))
         else:
-            bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.TYPING)
-            bot.sendMessage(chat_id=chat_id,
-                            text="No puedo decir eso ")
+            enviarMensaje(bot, update, "No puedo decir eso " + nombre_usuario.encode('utf-8'))
     else:
-        bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.TYPING)
-        bot.sendMessage(chat_id=chat_id,
-                        text="Disculpe señor usuario, debe enviar algo que yo pueda decir "+telegram.Emoji.DISAPPOINTED_FACE)
+        enviarMensaje(bot, update, "Disculpe " + nombre_usuario.encode('utf-8') + ", debe enviar algo que yo pueda decir "+telegram.Emoji.DISAPPOINTED_FACE)
 
 '''
 brief: Método que se encarga de ejecutar el comando dado por id_comando
@@ -158,7 +148,18 @@ def ejecutarComando(id_comando, bot, update):
         ayuda(bot, update)
     elif id_comando == 3:
         habla(bot, update)
-
+'''
+brief: Método que envia una respuesta al update
+param: bot:        bot que esta en funcionamiento
+       update:     actualización que llamo el comando
+       respuesta:  respuesta a enviar
+'''
+def enviarMensaje(bot, update, respuesta):
+    chat_id = update.message.chat_id
+    nombre_usuario = update.message.from_user.first_name
+    print "Protobot dice a " + nombre_usuario+ ": " + respuesta
+    bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.TYPING)
+    bot.sendMessage(chat_id=chat_id, text=respuesta)
 
 '''
 brief: Método que retorna texto aleatorio al usuario
