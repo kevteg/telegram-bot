@@ -51,7 +51,7 @@ def echo(bot):
             ej_comando     = False
             alias          = update.message.from_user.username
             nombre_usuario = update.message.from_user.first_name
-            print nombre_usuario + " (" + alias + "): " + message.decode('utf-8')
+            print nombre_usuario.encode('utf-8') + " (" + alias.encode('utf-8') + "): " + message.decode('utf-8')
 
             for comando in comandos.keys():
                 if comando in message and not ej_comando:
@@ -79,11 +79,25 @@ param: bot:        bot que esta en funcionamiento
        update:     actualización que llamo el comando
 '''
 def tomarFoto(bot, update):
-    num_camaras = 2
+    num_camaras = 4
     message = update.message.text.encode('utf-8')
     camara  = message[len(message) - 1: len(message)]
     chat_id = update.message.chat_id
     nombre_usuario = update.message.from_user.first_name
+    #Número de cámaras conectadas al bot
+    num_camaras = 4
+    #Nombre de las cámaras que están conectadas al bot
+    nombre_camaras = {0: "Web cam" , 1: "Pasillo",  2 : "Cocina",  3 : "Baño",}
+
+    #Lista que será el teclado
+    teclado_foto = list()
+    teclado_foto.append(list())
+    for n_cam in range(0, num_camaras):
+        teclado_foto[0].append(nombre_camaras[n_cam])
+
+    reply_markup = telegram.ReplyKeyboardMarkup(teclado_foto, one_time_keyboard = False, selective = True)
+    print reply_markup
+    bot.sendMessage(chat_id=chat_id, text="Selecciona la cámara que quieres", reply_markup=reply_markup)
     if camara.isdigit():
         camara = int(camara)
         if camara >= 0 and camara <= num_camaras - 1:
@@ -97,6 +111,7 @@ def tomarFoto(bot, update):
             enviarMensaje(bot, update, "Lo siento " + nombre_usuario.encode('utf-8') +", no reconozco ese número de cámara")
     else:
         enviarMensaje(bot, update, "Lo siento " + nombre_usuario.encode('utf-8') + ", no ha enviado número de cámara")
+    #telegram.ReplyKeyboardHide(hide_keyboard = False)
 '''
 brief: Método que envia información sobre comandos y el bot
 param: bot:        bot que esta en funcionamiento
@@ -157,7 +172,8 @@ param: bot:        bot que esta en funcionamiento
 def enviarMensaje(bot, update, respuesta):
     chat_id = update.message.chat_id
     nombre_usuario = update.message.from_user.first_name
-    print "Protobot dice a " + nombre_usuario+ ": " + respuesta
+    alias          = update.message.from_user.username
+    print "Protobot dice a " + nombre_usuario.encode('utf-8') + " (" + alias.encode('utf-8') + "): " + respuesta
     bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.TYPING)
     bot.sendMessage(chat_id=chat_id, text=respuesta)
 
