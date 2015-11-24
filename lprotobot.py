@@ -21,6 +21,12 @@ class probot:
         logging.basicConfig(
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self.num_camaras = num_camaras
+        #Lista que será el teclado
+        nombre_camaras = {0: "Web cam" , 1: "Habitación", 2: "X Cancelar X",}
+        self.teclado_foto = list()
+        for n_cam in range(0, self.num_camaras + 1):
+            self.teclado_foto.append(list())
+            self.teclado_foto[n_cam].append(nombre_camaras[n_cam])
         self.comandos = {"/start": 0, "/foto": 1, "/help": 2, "/habla": 3,}
         self.main()
 
@@ -88,28 +94,16 @@ class probot:
         #camara  = message[len(message) - 1: len(message)]
         chat_id = update.message.chat_id
         mess_id = update.message.message_id
-        #Nombre de las cámaras que están conectadas al bot
-        nombre_camaras = {0: "Web cam" , 1: "Habitación", 2: "X Cancelar X",}
 
-        #Lista que será el teclado
-        teclado_foto = list()
-        for n_cam in range(0, self.num_camaras + 1):
-            teclado_foto.append(list())
-            teclado_foto[n_cam].append(nombre_camaras[n_cam])
-
-        reply_markup = telegram.ReplyKeyboardMarkup(teclado_foto, one_time_keyboard = True, selective = True)
+        reply_markup = telegram.ReplyKeyboardMarkup(self.teclado_foto, one_time_keyboard = True, selective = True)
         self.bot.sendMessage(chat_id=chat_id, text="Selecciona la cámara que quieres",reply_to_message_id=mess_id, reply_markup=reply_markup)
         cola_foto = open("cola_fotos", "a+")
-        print chat_id
         if(not(str(chat_id) + "\n" in cola_foto)):
             cola_foto.seek(2, 0)
             cola_foto.write(str(chat_id) + "\n")
         cola_foto.close()
 
     def enviarFoto(self, update):
-        #Número de cámaras conectadas al bot
-        nombre_camaras = {0: "Web cam" , 1: "Habitación", 2: "X Cancelar X",}
-
         camara = "no"
         message = update.message.text.encode('utf-8')
         chat_id = update.message.chat_id
@@ -124,7 +118,7 @@ class probot:
         if type(camara) is int or camara.isdigit():
             if type(camara) is not int:
                 camara = int(camara)
-            if camara >= 0 and camara <= num_camaras - 1:
+            if camara >= 0 and camara <= self.num_camaras - 1:
                 self.enviarMensaje(update, "Tomaré la foto " + nombre_usuario.encode('utf-8') + ". Espera un momento")
                 foto.toma(camara)
                 #Se hace creer que el bot esta tomando una foto
@@ -134,19 +128,14 @@ class probot:
                 else:
                     self.enviarMensaje(update, "Lo siento " + nombre_usuario.encode('utf-8') +" hubo un problema interno")
                 self.borrarChatIdLista(chat_id)
-            elif camara == num_camaras:
+            elif camara == self.num_camaras:
                 self.enviarMensaje(update, "Vale. No tomaré ninguna foto")
                 self.borrarChatIdLista(chat_id)
             else:
                 self.enviarMensaje(update, "Lo siento " + nombre_usuario.encode('utf-8') +", no reconozco esa cámara")
         else:
-            nombre_camaras = {0: "Web cam" , 1: "Habitación", 2: "X Cancelar X",}
-            teclado_foto = list()
             mess_id = update.message.message_id
-            for n_cam in range(0, 2 + 1):
-                teclado_foto.append(list())
-                teclado_foto[n_cam].append(nombre_camaras[n_cam])
-            reply_markup = telegram.ReplyKeyboardMarkup(teclado_foto, one_time_keyboard = True, selective = True)
+            reply_markup = telegram.ReplyKeyboardMarkup(self.teclado_foto, one_time_keyboard = True, selective = True)
             self.bot.sendMessage(chat_id=chat_id, text="Esa cámara no existe, por favor, selecciona la cámara que quieres",reply_to_message_id=mess_id, reply_markup=reply_markup)
     '''
     brief: Método que borra un chat_id de la lista de ids que han solicitado fotos
@@ -231,4 +220,4 @@ class probot:
         data = res[random.randint(1, len(res) - 1)];
 
         return data.strip()
-pbot = probot()
+pbot = probot(2)
