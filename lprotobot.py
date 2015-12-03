@@ -7,6 +7,7 @@ import urllib
 import random
 import foto
 import os
+import sys
 
 
 
@@ -14,19 +15,24 @@ import os
 brief: Método principal donde se crea el bot
 '''
 class probot:
-    def __init__ (self, num_camaras):
+    def __init__ (self):
         #Variable glbal que mantiene al bot actualizado en el último chat
         self.LAST_UPDATE_ID = None
         #Variable login para hacer debug
         logging.basicConfig(
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        self.num_camaras = num_camaras
+        self.num_camaras = len(sys.argv) - 1
         #Lista que será el teclado
-        nombre_camaras = {0: "Web cam" , 1: "Habitación", 2: "X Cancelar X",}
+
+        self.nombre_camaras = {}
+        for n_cam in range(0, self.num_camaras):
+            self.nombre_camaras[n_cam] = sys.argv[n_cam + 1]
+        self.nombre_camaras[self.num_camaras] = telegram.Emoji.WARNING_SIGN + " Cancelar " + telegram.Emoji.WARNING_SIGN
+
         self.teclado_foto = list()
         for n_cam in range(0, self.num_camaras + 1):
             self.teclado_foto.append(list())
-            self.teclado_foto[n_cam].append(nombre_camaras[n_cam])
+            self.teclado_foto[n_cam].append(self.nombre_camaras[n_cam])
         self.comandos = {"/start": 0, "/foto": 1, "/help": 2, "/habla": 3,}
         self.main()
 
@@ -41,7 +47,10 @@ class probot:
             self.LAST_UPDATE_ID = None
 
         while True:
-            self.echo()
+            try:
+                self.echo()
+            except TelegramError("Timed out"):
+                self.echo()
 
     '''
     brief: Método que se encarga de analizar los últimos mensajes que llegan al bot
@@ -111,7 +120,7 @@ class probot:
         #camara  = message[len(message) - 1: len(message)]
         print "ID: ", chat_id
         print "Mensaje ", message
-        for val, nombre in nombre_camaras.iteritems():
+        for val, nombre in self.nombre_camaras.iteritems():
             if message == nombre:
                 camara = val
 
@@ -157,8 +166,8 @@ class probot:
         nombre_usuario = update.message.from_user.first_name
         self.enviarMensaje(update, "Hola " + nombre_usuario.encode('utf-8') + ", soy un bot de control de acceso del laboratorio de prototipos")
         self.enviarMensaje(update, "Por ahora tengo estos comandos: \n\
-                                    /foto n: Envio una foto de la cámara n-ésima de la computadora donde me encuentre\n\
-                                    /habla frase: envio un mensaje de voz con la frase que envies\n\
+                                    /foto: Envio una foto de la cámara que selecciones\n\
+                                    /habla: envio un mensaje de voz con la frase que envies\n\
                                     /ayuda: explico mis comandos y razón de ser")
 
 
@@ -220,4 +229,4 @@ class probot:
         data = res[random.randint(1, len(res) - 1)];
 
         return data.strip()
-pbot = probot(2)
+pbot = probot()
