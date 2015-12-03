@@ -33,7 +33,7 @@ class probot:
         for n_cam in range(0, self.num_camaras + 1):
             self.teclado_foto.append(list())
             self.teclado_foto[n_cam].append(self.nombre_camaras[n_cam])
-        self.comandos = {"/start": 0, "/foto": 1, "/help": 2, "/habla": 3,}
+        self.comandos = {"/start": 0, "/foto": 1, "/ayuda": 2, "/habla": 3,}
         self.main()
 
     def main(self):
@@ -47,16 +47,18 @@ class probot:
             self.LAST_UPDATE_ID = None
 
         while True:
-            try:
-                self.echo()
-            except TelegramError("Timed out"):
-                self.echo()
+            self.echo()
+            #try:
+            #    self.echo()
+            #except TelegramError("Timed out"):
+            #    self.echo()
 
     '''
     brief: Método que se encarga de analizar los últimos mensajes que llegan al bot
     '''
     def echo(self):
         cola_foto = open("cola_fotos", "a+")
+        cola_audio = open("cola_audio", "a+")
         # Se hacen las peticiones de actualizaciones a partir del último update
         for update in self.bot.getUpdates(offset=self.LAST_UPDATE_ID, timeout=10):
             #Se buscan entre todas las actualizaciones y se procesa cada mensaje
@@ -71,6 +73,8 @@ class probot:
 
                 if(str(chat_id) + "\n" in cola_foto):
                     self.enviarFoto(update)
+                elif(str(chat_id) + "\n" in cola_audio):
+                    self.habla(message, chat_id)
                 else:
                     for comando in self.comandos.keys():
                         if comando in message and not ej_comando:
@@ -136,10 +140,10 @@ class probot:
                     self.bot.sendPhoto(chat_id=chat_id, photo=open('Foto.png', 'r'))
                 else:
                     self.enviarMensaje(update, "Lo siento " + nombre_usuario.encode('utf-8') +" hubo un problema interno")
-                self.borrarChatIdLista(chat_id)
+                self.borrarChatIdLista(chat_id, "cola_fotos")
             elif camara == self.num_camaras:
                 self.enviarMensaje(update, "Vale. No tomaré ninguna foto")
-                self.borrarChatIdLista(chat_id)
+                self.borrarChatIdLista(chat_id, "cola_fotos")
             else:
                 self.enviarMensaje(update, "Lo siento " + nombre_usuario.encode('utf-8') +", no reconozco esa cámara")
         else:
@@ -150,14 +154,16 @@ class probot:
     brief: Método que borra un chat_id de la lista de ids que han solicitado fotos
     param: chat_id:     id del chat a sacar de la lista
     '''
-    def borrarChatIdLista(self, chat_id):
-        cola_foto = open("cola_fotos", "r")
-        ids = cola_foto.readlines()
-        cola_foto.close()
-        cola_foto = open("cola_fotos", "w")
+    def borrarChatIdLista(self, chat_id, lista):
+        #cola_fotos
+        cola = open(lista, "r")
+        ids = cola.readlines()
+        cola.close()
+        cola = open(lista, "w")
         for i_id in ids:
             if i_id != str(chat_id) + "\n":
-                cola_foto.write(i_id)
+                cola.write(i_id)
+        cola.close()
     '''
     brief: Método que envia información sobre comandos y el bot
     param: update:     actualización que llamo el comando
@@ -175,23 +181,37 @@ class probot:
     brief: Método que envia el texto que recibe despues de /habla
     param: update:     actualización que llamo el comando
     '''
-    def habla(self, update):
+    def peticionHabla(self, update):
         message        = update.message.text.encode('utf-8')
         chat_id        = update.message.chat_id
         nombre_usuario = update.message.from_user.first_name
-        texto          = message[6: len(message)]
-
-        if(len(texto) > 1):
-            print texto
-            os.system("rm audio.mp3")
-            if("\"" not in texto and not(os.system("espeak -v es-la \"" + texto + "\" --stdout | ffmpeg -i - -ar 44100 -ac 2 -ab 192k -f mp3 audio.mp3"))):
-                self.bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.UPLOAD_AUDIO)
-                self.bot.sendVoice(chat_id=chat_id, voice=open('audio.mp3', 'r'))
-            else:
-                self.enviarMensaje(update, "No puedo decir eso " + nombre_usuario.encode('utf-8'))
+        if("@lprotobot" in message):
+            n          = len("@lprotobot/Habla")
         else:
-            self.enviarMensaje(update, "Disculpe " + nombre_usuario.encode('utf-8') + ", debe enviar algo que yo pueda decir "+telegram.Emoji.DISAPPOINTED_FACE)
+            n          = len("/habla")
+        print n
+        texto          = message[n: len(message)]
+        print "AQUIII"
+        print texto
+        if(len(texto) > 1):
+            self.habla(texto, chat_id)
+        else:
+            self.enviarMensaje(update, "¿Qué quieres que diga " + nombre_usuario.encode('utf-8') + "?")
+            cola_audio = open("cola_audio", "a+")
+            if(not(str(chat_id) + "\n" in cola_audio)):
+                cola_audio.seek(2, 0)
+                cola_audio.write(str(chat_id) + "\n")
+            cola_audio.close()
 
+    def habla(self, texto, chat_id):
+        os.system("rm audio.mp3")
+        if("\"" not in texto and not(os.system("espeak -v es-la \"" + texto + "\" --stdout | ffmpeg -i - -ar 44100 -ac 2 -ab 192k -f mp3 audio.mp3"))):
+            print "Enviaré audio con: " + texto
+            self.bot.sendChatAction(chat_id=chat_id, action=telegram.ChatAction.UPLOAD_AUDIO)
+            self.bot.sendVoice(chat_id=chat_id, voice=open('audio.mp3', 'r'))
+        else:
+            self.enviarMensaje(update, "No puedo decir eso " + nombre_usuario.encode('utf-8'))
+        self.borrarChatIdLista(chat_id, "cola_audio")
     '''
     brief: Método que se encarga de ejecutar el comando dado por id_comando
     param: id_comando: id del comando que se ejecutara
@@ -205,7 +225,7 @@ class probot:
         elif id_comando == 2:
             self.ayuda(update)
         elif id_comando == 3:
-            self.habla(update)
+            self.peticionHabla(update)
     '''
     brief: Método que envia una respuesta al update
     param: update:     actualización que llamo el comando
